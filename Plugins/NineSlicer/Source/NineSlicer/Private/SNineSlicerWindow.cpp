@@ -8,7 +8,7 @@
 
 void SNineSlicerWindow::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> WidgetBlueprintEditor)
 {
-	OnCustomEvent.BindSP(this, &SNineSlicerWindow::CheckForUpdateDelegate);
+	CheckForUpdateBind.BindSP(this, &SNineSlicerWindow::CheckForUpdateDelegate);
 	WeakBlueprintEditor = WidgetBlueprintEditor;
 	CheckForUpdate();
 }
@@ -17,9 +17,9 @@ int32 SNineSlicerWindow::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 	const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId,
 	const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	if(OnCustomEvent.IsBound())
+	if(CheckForUpdateBind.IsBound())
 	{
-		OnCustomEvent.Execute();
+		CheckForUpdateBind.Execute();
 	}
 
 	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle,
@@ -105,7 +105,7 @@ void SNineSlicerWindow::DrawWidget(bool IsSuccess)
 			CreateHandle(this,FVector2D(1,3), FVector2D(0,-8),
 					HAlign_Center, VAlign_Top,
 					HAlign_Fill, VAlign_Top,
-					FText::FromString("T"))
+					FText::FromString("T"), T_Transform)
 		]
 
 		// Bottom Handle
@@ -114,7 +114,7 @@ void SNineSlicerWindow::DrawWidget(bool IsSuccess)
 			CreateHandle(this,FVector2D(1,3), FVector2D(0,8),
 						HAlign_Center, VAlign_Bottom,
 						HAlign_Fill, VAlign_Bottom,
-						FText::FromString("B"))
+						FText::FromString("B"), B_Transform)
 		]
 
 		// Left Handle
@@ -123,7 +123,7 @@ void SNineSlicerWindow::DrawWidget(bool IsSuccess)
 			CreateHandle(this,FVector2D(3,1), FVector2D(-8,0),
 						HAlign_Left, VAlign_Center,
 						HAlign_Left, VAlign_Fill,
-						FText::FromString("L"))
+						FText::FromString("L"), L_Transform)
 		]
 		
 		// Right Handle
@@ -132,7 +132,7 @@ void SNineSlicerWindow::DrawWidget(bool IsSuccess)
 			CreateHandle(this,FVector2D(3,1), FVector2D(8,0),
 						HAlign_Right, VAlign_Center,
 						HAlign_Right, VAlign_Fill,
-						FText::FromString("R"))
+						FText::FromString("R"), R_Transform)
 		]
 
 		// If no uimage is selected
@@ -150,35 +150,69 @@ void SNineSlicerWindow::CheckForUpdateDelegate()
 	CheckForUpdate();
 }
 
-void SNineSlicerWindow::Dothis()
+void SNineSlicerWindow::OnPressedLambda(const FText& label)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Button was pressed!"));
+	UE_LOG(LogTemp, Warning, TEXT("Label: %s"), *label.ToString());
+	
+	if(label.ToString() == "L")
+	{
+		Allow_L = true;
+		Allow_R = Allow_T = Allow_B = false;
+		return;
+	}
+	if(label.ToString() == "R")
+	{
+		Allow_R = true;
+		Allow_L = Allow_T = Allow_B = false;
+		return;
+	}
+	if(label.ToString() == "T")
+	{
+		Allow_T = true;
+		Allow_L = Allow_R = Allow_B = false;
+		return;
+	}
+	if(label.ToString() == "B")
+	{
+		Allow_B = true;
+		Allow_L = Allow_R = Allow_T = false;
+		return;
+	}
 }
 
+void SNineSlicerWindow::OnReleasedLambda()
+{
+	Allow_L = Allow_R = Allow_T = Allow_B = false;
+}
 
 TSharedRef<SWidget> SNineSlicerWindow::CreateHandle(SNineSlicerWindow* Instance,
                                                     FVector2D LineSize,
                                                     FVector2D ButtonOffset, EHorizontalAlignment HAlign_Button, EVerticalAlignment VAlign_Button,
-                                                    EHorizontalAlignment HAlign_Line, EVerticalAlignment VAlign_Line, const FText& ButtonLabel) const
+                                                    EHorizontalAlignment HAlign_Line, EVerticalAlignment VAlign_Line, const FText& ButtonLabel, FVector2D Transform) const
 {
+	
 	return SNew(SOverlay)
 	+SOverlay::Slot().HAlign(HAlign_Line).VAlign(VAlign_Line)
 	[
 		SNew(SImage)
 		.DesiredSizeOverride(LineSize)
 		.ColorAndOpacity(FLinearColor::Blue)
+		.RenderTransform(Transform)
 	]
 	+SOverlay::Slot().HAlign(HAlign_Button).VAlign(VAlign_Button)
 	[
 		SNew(SBox)
-		.RenderTransform(ButtonOffset)
+		.RenderTransform(ButtonOffset+Transform)
 		[
 			SNew(SButton)
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Center)
 			.ContentPadding(FMargin(-6,1,-6,1))
-			//.OnClicked(Instance, &SNineSlicerWindow::OnMyButtonClicked, ButtonLabel) // this works
-			//.OnPressed(FSimpleDelegate::CreateUObject(this, &SNineSlicerWindow::Dothis)) // this does not
+			.OnPressed(FSimpleDelegate::CreateLambda([Instance, ButtonLabel]()//absolutely vile lambda
+						{
+							Instance->OnPressedLambda(ButtonLabel);
+						}))
+			.OnReleased(Instance, &SNineSlicerWindow::OnReleasedLambda)
 			[
 				SNew(STextBlock)
 				.Text(ButtonLabel)
@@ -192,6 +226,7 @@ FReply SNineSlicerWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const F
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
+		//UE_LOG(LogTemp, Warning, TEXT("ayayyaya"));
 		// Return FReply::Handled() to indicate that we've handled this event.
 		return FReply::Handled();
 	}
@@ -202,9 +237,18 @@ FReply SNineSlicerWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const F
 
 FReply SNineSlicerWindow::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	//CheckForUpdate();
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		FVector2D LocalMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+		LocalMousePosition = LocalMousePosition/MyGeometry.Size;
+		UE_LOG(LogTemp, Warning, TEXT("%f %f"), LocalMousePosition.X, LocalMousePosition.Y);
+	}
 	FVector2D LocalMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 	LocalMousePosition = LocalMousePosition/MyGeometry.Size;
+	UE_LOG(LogTemp, Warning, TEXT("%f %f"), LocalMousePosition.X, LocalMousePosition.Y);
+	//CheckForUpdate();
+	//FVector2D LocalMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	//LocalMousePosition = LocalMousePosition/MyGeometry.Size;
 	//UE_LOG(LogTemp, Warning, TEXT("%f %f"), LocalMousePosition.X, LocalMousePosition.Y);
 	
 	return FReply::Handled();

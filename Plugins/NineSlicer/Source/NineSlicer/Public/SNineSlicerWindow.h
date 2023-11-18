@@ -31,13 +31,14 @@ public:
 	void DrawWidget(bool IsSuccess);
 	void CheckForUpdateDelegate();
 
-	static void Dothis();
+	void OnPressedLambda(const FText& label);
+	void OnReleasedLambda();
 	
 	TSharedRef<SWidget> CreateHandle(SNineSlicerWindow* Instance,
 									 FVector2D LineSize, FVector2D ButtonOffset,
 									 EHorizontalAlignment HAlign_Button, EVerticalAlignment VAlign_Button,
 									 EHorizontalAlignment HAlign_Line, EVerticalAlignment VAlign_Line,
-									 const FText& ButtonLabel) const;
+									 const FText& ButtonLabel, FVector2D Transform) const;
 
 	EVisibility GetImageVisibility() const;
 	EVisibility GetTextVisibility() const;
@@ -52,8 +53,18 @@ private:
 	UObject* CurrentBrushResource = nullptr;
 	UObject* PreviousBrushResource = CurrentBrushResource;
 
+	bool Allow_T = false;
+	bool Allow_B = false;
+	bool Allow_L = false;
+	bool Allow_R = false;
+	
+	FVector2D T_Transform = FVector2D(0,0);
+	FVector2D B_Transform = FVector2D(0,0);
+	FVector2D L_Transform = FVector2D(0,0);
+	FVector2D R_Transform = FVector2D(0,0);
+	
 	FText Tip = FText::FromString(TEXT("Select a valid resource \n then hover back to this window."));
 
 private:
-	FMyCustomDelegate OnCustomEvent;
+	FMyCustomDelegate CheckForUpdateBind;
 };
