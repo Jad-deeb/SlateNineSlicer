@@ -41,7 +41,9 @@ public class ColorPalette : ModuleRules
 				"Engine",
 				"DeveloperSettings",
 				"SourceControl",
-				"UnrealEd", "EditorScriptingUtilities", "AppFramework"
+				"UnrealEd",
+				"EditorScriptingUtilities",
+				"AppFramework"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "ColorPaletteColorTypes.generated.h"
 
-
 // Voyager colors
 UENUM(BlueprintType)
 enum class EColorPaletteColors : uint8

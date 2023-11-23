@@ -26,6 +26,7 @@ public class ColorPaletteEditor : ModuleRules
 			new string[]
 			{
 				"Core",
+				"ColorPalette",
 				// ... add other public dependencies that you statically link with here ...
 			}
 		);
@@ -40,12 +41,14 @@ public class ColorPaletteEditor : ModuleRules
 				"EditorStyle",
 				"Engine",
 				"Projects",
-				"ColorPalette",
 				"Slate",
 				"SlateCore",
 				"UnrealEd",
 				"UMGEditor",
 				"UMG",
+				"ColorPalette",
+				"BlueprintGraph",
+				"KismetCompiler"
 				// ... add private dependencies that you statically link with here ...	
 			}
 		);

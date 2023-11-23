@@ -48,7 +48,12 @@ void UColorPaletteDeveloperSettings::PostEditChangeProperty(FPropertyChangedEven
 		if (const TSoftObjectPtr<UMaterialParameterCollection> MPC = Settings->ColorPaletteColorsMPC)
 		{
 			AddOrSetVecToMPC(MPC.Get());
-			SaveColorThemesToIni();
+			SaveColorThemesToIni(GEditorPerProjectIni);
+			if(SaveInDefaultIni)
+			{
+				FString DefaultEditorPerProjectUserSettingsPath = FPaths::Combine(FPaths::ProjectConfigDir(), TEXT("DefaultEditorPerProjectUserSettings.ini"));
+				SaveColorThemesToIni(DefaultEditorPerProjectUserSettingsPath);
+			}
 		}
 		else
 		{
@@ -123,11 +128,6 @@ void UColorPaletteDeveloperSettings::AddOrSetVecToMPC(UMaterialParameterCollecti
 	Collection->PostEditChange();
 	FAssetRegistryModule::AssetCreated(Collection);
 	GEditor->BroadcastObjectReimported(Collection);
-	//
-	// FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-	// TArray<UPackage*> PackagesToSave;
-	// PackagesToSave.Add(Collection->GetOutermost());
-	// AssetToolsModule.Get().SavePackages(PackagesToSave);
 	
 	bool bSavedSuccessfully = UEditorAssetLibrary::SaveAsset(Collection->GetPathName(), false);
 	if (!bSavedSuccessfully)
@@ -136,19 +136,19 @@ void UColorPaletteDeveloperSettings::AddOrSetVecToMPC(UMaterialParameterCollecti
 	}
 };
 
-void UColorPaletteDeveloperSettings::SaveColorThemesToIni()
+void UColorPaletteDeveloperSettings::SaveColorThemesToIni(FString IniToSaveTo)
 {
-	if (FPaths::FileExists(GEditorPerProjectIni))
+	if (FPaths::FileExists(IniToSaveTo))
 	{
 		if(ISourceControlModule::Get().IsEnabled())
 		{
-			USourceControlHelpers::CheckOutOrAddFile(GEditorPerProjectIni);
+			USourceControlHelpers::CheckOutOrAddFile(IniToSaveTo);
 		}
-		GConfig->EmptySection(TEXT("ColorThemes"), GEditorPerProjectIni);
+		GConfig->EmptySection(TEXT("ColorThemes"), IniToSaveTo);
 		for (int32 ThemeIndex = 0; ThemeIndex < ColorPaletteColors.Num(); ++ThemeIndex)
 		{
 			const FColorPaletteColors& Theme = ColorPaletteColors[ThemeIndex];
-			GConfig->SetString(TEXT("ColorThemes"), *FString::Printf(TEXT("Theme%i"), ThemeIndex), *Theme.ColorGroup, GEditorPerProjectIni);
+			GConfig->SetString(TEXT("ColorThemes"), *FString::Printf(TEXT("Theme%i"), ThemeIndex), *Theme.ColorGroup, IniToSaveTo);
 
 			const TArray<FAColorPaletteColor>& Colors = Theme.Colors;
 			for (int32 ColorIndex = 0; ColorIndex < Colors.Num(); ++ColorIndex)
@@ -156,9 +156,16 @@ void UColorPaletteDeveloperSettings::SaveColorThemesToIni()
 				const FLinearColor& Color = Colors[ColorIndex].Color;
 				GetEnumDisplayName(Colors[ColorIndex].ColorKey);
 				const FString& Label = GetEnumDisplayName(Colors[ColorIndex].ColorKey);
-				GConfig->SetString(TEXT("ColorThemes"), *FString::Printf(TEXT("Theme%iColor%i"), ThemeIndex, ColorIndex), *LinearColorToHSVtring(Color), GEditorPerProjectIni);
-				GConfig->SetString(TEXT("ColorThemes"), *FString::Printf(TEXT("Theme%iLabel%i"), ThemeIndex, ColorIndex), *Label, GEditorPerProjectIni);
+				GConfig->SetString(TEXT("ColorThemes"), *FString::Printf(TEXT("Theme%iColor%i"), ThemeIndex, ColorIndex), *LinearColorToHSVtring(Color), IniToSaveTo);
+				GConfig->SetString(TEXT("ColorThemes"), *FString::Printf(TEXT("Theme%iLabel%i"), ThemeIndex, ColorIndex), *Label, IniToSaveTo);
 			}
 		}
+	}
+	else
+	{
+		FFileHelper::SaveStringToFile(FString("[ColorThemes]"), *IniToSaveTo);
+		const FString WarningText = "We couldn't find a" + IniToSaveTo +
+									"ini file, we created one for you though, feel free to refresh the operation !";
+		ShowWarningDialog(WarningText);
 	}
 }

@@ -27,17 +27,17 @@ public: //Voyager color settings
 	UPROPERTY(config, EditAnywhere, BlueprintReadOnly, Category = "Development", meta = (DisplayName = "Color Palette MPC"))
 	TSoftObjectPtr<UMaterialParameterCollection> ColorPaletteColorsMPC;
 
+	UPROPERTY(config, EditAnywhere, BlueprintReadOnly, Category = "Development", meta = (DisplayName = "Store colors to all users by default ?"))
+	bool SaveInDefaultIni = false;
+
 public:
 	UFUNCTION()
 	void AddOrSetVecToMPC(UMaterialParameterCollection* Collection);
-	//
-	// UFUNCTION()
-	// void HandlePropertyChange();
 
 	UFUNCTION()
 	TArray<FAColorPaletteColor> GetColorPaletteColors();
 	
 	UFUNCTION()
-	void SaveColorThemesToIni();
+	void SaveColorThemesToIni(FString IniToSaveTo);
 	
 };

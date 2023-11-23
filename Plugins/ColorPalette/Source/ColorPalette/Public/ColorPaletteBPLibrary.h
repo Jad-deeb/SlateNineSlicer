@@ -2,14 +2,15 @@
 
 #pragma once
 
+#include "ColorPaletteColorTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "ColorPaletteBPLibrary.generated.h"
 
 UCLASS()
-class UColorPaletteBPLibrary : public UBlueprintFunctionLibrary
+class COLORPALETTE_API UColorPaletteBPLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
-
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Execute Sample function", Keywords = "ColorPalette sample test testing"), Category = "ColorPaletteTesting")
-	static float ColorPaletteSampleFunction(float Param);
+public:
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	static FLinearColor GetAColorPaletteColor(EColorPaletteColors ColorKey);
 };
